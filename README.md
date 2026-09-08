@@ -1,6 +1,6 @@
 # CRYPTA // Zero-Knowledge Proofs & Post-Quantum Lattice Playground
 
-[![Deploy to GitHub Pages](https://github.com/hapybeing/spark-crypto-lattice-zk-2026-09-08/actions/workflows/deploy.yml/badge.svg)](https://github.com/hapybeing/spark-crypto-lattice-zk-2026-09-08/actions/workflows/deploy.yml)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](https://opensource.org/licenses/MIT)
 [![Tech Stack](https://img.shields.io/badge/Stack-Post--Quantum%20Lattice%20%7C%20ZK--Proofs%20%7C%20ECC%20%7C%20Tailwind%20%7C%20ES6%2B-cyan.svg)](#architecture)
 
