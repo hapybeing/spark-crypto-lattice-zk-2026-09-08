@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>CRYPTA // Zero-Knowledge Proofs & Post-Quantum Lattice Playground</title>
+<meta name="description" content="Interactive Zero-Knowledge Proofs, Post-Quantum LWE Lattice Visualizer, Elliptic Curve Arithmetic & SHA-256 State Permutation Explorer.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;600&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['Inter','sans-serif'],mono:['Geist Mono','monospace']},colors:{obsidian:{950:'#050507',900:'#09090b',800:'#14141b',700:'#1e1e27'}}}}}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<style>
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:#09090b}::-webkit-scrollbar-thumb{background:#272733;border-radius:2px}
+input[type=range]{-webkit-appearance:none;background:transparent;cursor:pointer;width:100%}input[type=range]:focus{outline:none}
+input[type=range]::-webkit-slider-runnable-track{background:#181820;height:4px;border-radius:99px;border:1px solid #272733}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;height:12px;width:12px;border-radius:99px;background:#10b981;border:2px solid #050507;box-shadow:0 0 8px rgba(16,185,129,.5);margin-top:-4px;transition:all .15s}
+input[type=range].c-c::-webkit-slider-thumb{background:#06b6d4;box-shadow:0 0 8px rgba(6,182,212,.5)}
+input[type=range].c-v::-webkit-slider-thumb{background:#8b5cf6;box-shadow:0 0 8px rgba(139,92,246,.5)}
+input[type=range].c-a::-webkit-slider-thumb{background:#f59e0b;box-shadow:0 0 8px rgba(245,158,11,.5)}
+.glass{background:rgba(15,15,19,.85);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.08);box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.card{background:rgba(20,20,27,.65);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.06);border-radius:.75rem;padding:.75rem}
+.sub{background:rgba(9,9,11,.6);border:1px solid rgba(255,255,255,.04);border-radius:.5rem;padding:.5rem}
+.lbl{display:flex;justify-content:space-between;font-size:10px;font-family:monospace;color:#a1a1aa;margin-bottom:2px}
+.tab-btn{padding:3px 8px;border-radius:4px;font-size:10px;font-family:monospace;color:#a1a1aa;transition:all .15s;border:1px solid transparent}
+.tab-btn:hover{color:#fff}.tab-btn.active{background:rgba(16,185,129,.2);color:#6ee7b7;border-color:rgba(16,185,129,.4)}
+.bg-grid{background-image:radial-gradient(rgba(255,255,255,.04) 1px,transparent 0);background-size:24px 24px}
+</style>
+</head>
+<body class="bg-obsidian-950 text-zinc-200 font-sans min-h-screen flex flex-col antialiased selection:bg-emerald-500/30 selection:text-emerald-200 bg-grid overflow-x-hidden">
+
+<header class="sticky top-0 z-50 glass border-b border-white/[0.08] px-4 py-2">
+  <div class="max-w-[1720px] mx-auto flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-2.5">
+      <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-400 via-cyan-500 to-violet-600 p-[1px] shadow-lg shadow-emerald-500/20">
+        <div class="h-full w-full bg-obsidian-950 rounded-[7px] flex items-center justify-center"><i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i></div>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-sm tracking-tight text-white font-mono">CRYPTA</span>
+          <span class="text-[9px] uppercase font-mono px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">ZK & LATTICE v1.4</span>
+          <span id="crypto-status-badge" class="flex items-center gap-1 text-[9px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">
+            <span id="crypto-status-led" class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#10b981]"></span>
+            <span id="crypto-status-text">VALIDATED</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Mode Tabs -->
+    <div class="flex p-0.5 bg-obsidian-900 border border-white/[0.08] rounded-lg text-xs font-mono">
+      <button class="tab-btn active" data-tab="lattice">LWE LATTICE</button>
+      <button class="tab-btn" data-tab="zkp">ZERO-KNOWLEDGE</button>
+      <button class="tab-btn" data-tab="ecc">ELLIPTIC CURVE</button>
+      <button class="tab-btn" data-tab="sha">SHA-256 AVALANCHE</button>
+    </div>
+
+    <div class="flex items-center flex-wrap gap-2">
+      <div class="flex items-center gap-1 bg-obsidian-900 border border-white/[0.08] rounded-lg px-2 py-1">
+        <i data-lucide="sparkles" class="w-3 h-3 text-amber-400"></i><span class="text-[10px] text-zinc-400 font-mono">PRESET:</span>
+        <select id="preset-selector" class="bg-transparent text-xs font-mono text-zinc-200 focus:outline-none cursor-pointer">
+          <option value="lwe_standard" class="bg-obsidian-900">Post-Quantum LWE (q=97)</option>
+          <option value="lwe_noisy" class="bg-obsidian-900">LWE Boundary Noise Attack</option>
+          <option value="zk_schnorr" class="bg-obsidian-900">Schnorr Discrete Log ZKP</option>
+          <option value="ecc_dh" class="bg-obsidian-900">ECDH Key Exchange (F_p)</option>
+          <option value="sha_diffusion" class="bg-obsidian-900">SHA-256 Bit Diffusion</option>
+        </select>
+      </div>
+
+      <button id="btn-recompute" class="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-medium text-xs shadow-md shadow-emerald-600/30 active:scale-95">
+        <i data-lucide="refresh-cw" class="w-3 h-3"></i><span>EXECUTE CIPHER</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="flex-1 max-w-[1720px] w-full mx-auto p-3 lg:p-4 space-y-3">
+  <!-- TAB 1: POST-QUANTUM LWE LATTICE VISUALIZER -->
+  <div id="section-lattice" class="tab-content space-y-3">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <!-- 2D Lattice Canvas Viewport -->
+      <div class="lg:col-span-2 glass rounded-xl p-3 relative overflow-hidden flex flex-col">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <div class="flex items-center gap-2">
+            <i data-lucide="grid" class="w-4 h-4 text-emerald-400"></i>
+            <h2 class="text-xs font-bold text-white font-mono tracking-tight">
+              2D EUCLIDEAN LATTICE $\Lambda(B)$ & LEARNING WITH ERRORS (LWE) CIPHER
+            </h2>
+          </div>
+          <div class="flex items-center gap-2 text-[10px] font-mono text-zinc-400">
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>LATTICE NODES</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-cyan-400 inline-block"></span>SECRET s</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>CIPHERTEXT c</span>
+          </div>
+        </div>
+
+        <div class="relative w-full h-80 sm:h-96 bg-obsidian-950 rounded-lg border border-white/[0.08] overflow-hidden shadow-inner flex-1">
+          <canvas id="lattice-canvas" class="w-full h-full block cursor-crosshair"></canvas>
+          <div class="absolute bottom-2 left-2 right-2 flex flex-wrap items-center justify-between pointer-events-none gap-2 px-3 py-1.5 rounded-lg bg-obsidian-950/85 backdrop-blur-md border border-white/[0.06] text-[10px] font-mono">
+            <div class="flex items-center gap-3 text-zinc-400">
+              <div>MODULUS q: <span id="tele-lwe-q" class="text-emerald-400 font-semibold">97</span></div>
+              <div>NOISE σ: <span id="tele-lwe-sigma" class="text-cyan-400 font-semibold">2.4</span></div>
+              <div>DECRYPTED BIT: <span id="tele-lwe-decrypted" class="text-amber-400 font-semibold">1 (MATCH)</span></div>
+              <div>ERROR DIST: <span id="tele-lwe-err" class="text-violet-400 font-semibold">1.82</span></div>
+            </div>
+            <div class="flex items-center gap-3 text-zinc-500">
+              <div>CVP STATUS: <span id="tele-lwe-status" class="text-emerald-400 font-semibold">CORRECT BOUND</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LWE Parameters & Math Card -->
+      <div class="glass rounded-xl p-3 flex flex-col justify-between space-y-3">
+        <div class="space-y-2">
+          <div class="flex items-center justify-between border-b border-white/[0.08] pb-1">
+            <div class="flex items-center gap-1.5"><i data-lucide="key" class="w-3.5 h-3.5 text-emerald-400"></i><h3 class="text-xs font-bold font-mono text-white">LWE CRYPTOSYSTEM</h3></div>
+            <span class="text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">POST-QUANTUM</span>
+          </div>
+          
+          <div class="sub space-y-1">
+            <div class="lbl"><span>MODULUS q (PRIME)</span><span id="lwe-q-val" class="text-emerald-400">97</span></div>
+            <input id="lwe-q" type="range" min="31" max="251" step="2" value="97">
+          </div>
+
+          <div class="sub space-y-1">
+            <div class="lbl"><span>GAUSSIAN NOISE σ</span><span id="lwe-sigma-val" class="text-cyan-400">2.5</span></div>
+            <input id="lwe-sigma" type="range" min="0.5" max="15" step="0.5" value="2.5" class="c-c">
+          </div>
+
+          <div class="sub space-y-1">
+            <div class="lbl"><span>PLAINTEXT BIT m</span><span id="lwe-bit-val" class="text-amber-400">1</span></div>
+            <div class="flex gap-2">
+              <button id="btn-bit-0" class="flex-1 py-1 rounded bg-obsidian-900 border border-white/[0.08] text-xs font-mono hover:text-white">BIT 0</button>
+              <button id="btn-bit-1" class="flex-1 py-1 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold">BIT 1</button>
+            </div>
+          </div>
+
+          <div class="sub space-y-1 font-mono text-[9px] text-zinc-400 leading-relaxed">
+            <div class="text-zinc-200 font-semibold mb-0.5">UNDERLYING POST-QUANTUM EQUATIONS:</div>
+            <div>• KeyGen: $A \in \mathbb{Z}_q^{m \times n}, \mathbf{s} \in \mathbb{Z}_q^n, \mathbf{b} = A\mathbf{s} + \mathbf{e} \pmod q$</div>
+            <div>• Encrypt: $\mathbf{c}_1 = A^T \mathbf{r}, c_2 = \mathbf{b}^T \mathbf{r} + m \cdot \lfloor q/2 \rfloor$</div>
+            <div>• Decrypt: $c_2 - \mathbf{s}^T \mathbf{c}_1 \approx m \cdot \lfloor q/2 \rfloor + \mathbf{e}^T\mathbf{r}$</div>
+          </div>
+        </div>
+
+        <button id="btn-sample-noise" class="w-full py-1.5 rounded-lg bg-obsidian-900 hover:bg-zinc-800 border border-white/[0.08] text-xs font-mono text-cyan-300">
+          INJECT NOISE SAMPLE (e ← χ)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: ZERO-KNOWLEDGE PROOF (SCHNORR SIGMA-PROTOCOL) -->
+  <div id="section-zkp" class="tab-content hidden space-y-3">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <div class="lg:col-span-2 glass rounded-xl p-3 relative overflow-hidden flex flex-col">
+        <div class="flex items-center justify-between border-b border-white/[0.08] pb-1.5 mb-3">
+          <div class="flex items-center gap-2">
+            <i data-lucide="eye-off" class="w-4 h-4 text-violet-400"></i>
+            <h2 class="text-xs font-bold text-white font-mono tracking-tight">
+              INTERACTIVE $\Sigma$-PROTOCOL // PROVING DISCRETE LOG WITHOUT REVEALING SECRET
+            </h2>
+          </div>
+          <span id="zk-verify-badge" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold">VERIFIED VALID</span>
+        </div>
+
+        <!-- ZK Protocol Interactive Flow Diagram -->
+        <div class="relative w-full h-80 bg-obsidian-950 rounded-lg border border-white/[0.08] p-4 flex flex-col justify-between font-mono text-xs overflow-y-auto">
+          <div class="grid grid-cols-2 gap-4 pb-2 border-b border-white/[0.06]">
+            <div class="text-emerald-400 font-bold flex items-center gap-1.5"><i data-lucide="user-check" class="w-4 h-4"></i> PROVER (PEGGY)</div>
+            <div class="text-cyan-400 font-bold flex items-center gap-1.5 justify-end">VERIFIER (VICTOR) <i data-lucide="shield" class="w-4 h-4"></i></div>
+          </div>
+
+          <!-- Step 1: Commitment -->
+          <div class="p-2 rounded bg-obsidian-900/80 border border-white/[0.04] space-y-1">
+            <div class="text-[10px] text-zinc-400 flex justify-between">
+              <span class="text-emerald-300 font-semibold">1. COMMITMENT PHASE (PROVER)</span>
+              <span>Selects random nonce r</span>
+            </div>
+            <div class="text-[11px] text-zinc-300">Nonce $r = $ <span id="zk-r-val" class="text-emerald-400">17</span> &nbsp;→&nbsp; Commitment $t = g^r \pmod p = $ <span id="zk-t-val" class="text-emerald-300 font-bold">42</span></div>
+            <div class="text-[9px] text-zinc-500">Peggy sends commitment $t$ to Victor (zero knowledge leaked).</div>
+          </div>
+
+          <!-- Step 2: Challenge -->
+          <div class="p-2 rounded bg-obsidian-900/80 border border-white/[0.04] space-y-1">
+            <div class="text-[10px] text-zinc-400 flex justify-between">
+              <span class="text-cyan-300 font-semibold">2. CHALLENGE PHASE (VERIFIER)</span>
+              <span>Random challenge bit/scalar</span>
+            </div>
+            <div class="text-[11px] text-zinc-300">Victor challenges Peggy with $c = $ <span id="zk-c-val" class="text-cyan-400 font-bold">13</span></div>
+            <div class="text-[9px] text-zinc-500">Victor sends challenge $c$. Prover cannot anticipate $c$ in advance.</div>
+          </div>
+
+          <!-- Step 3: Response & Verification -->
+          <div class="p-2 rounded bg-obsidian-900/80 border border-white/[0.04] space-y-1">
+            <div class="text-[10px] text-zinc-400 flex justify-between">
+              <span class="text-violet-300 font-semibold">3. RESPONSE & VERIFICATION</span>
+              <span>$s = r + c \cdot x \pmod{p-1}$</span>
+            </div>
+            <div class="text-[11px] text-zinc-300">Response $s = $ <span id="zk-s-val" class="text-violet-400 font-bold">81</span> &nbsp;|&nbsp; Check $g^s \stackrel{?}{\equiv} t \cdot y^c \pmod p$</div>
+            <div class="text-[10px] text-emerald-400 font-bold" id="zk-eq-check">Left: 54 ≡ Right: 54 (PROVED IDENTITY)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ZK Controls -->
+      <div class="glass rounded-xl p-3 space-y-3">
+        <div class="flex items-center justify-between border-b border-white/[0.08] pb-1">
+          <div class="flex items-center gap-1.5"><i data-lucide="lock" class="w-3.5 h-3.5 text-violet-400"></i><h3 class="text-xs font-bold font-mono text-white">SCHNORR PARAMETERS</h3></div>
+          <span class="text-[9px] font-mono px-1 py-0.2 rounded bg-violet-500/10 text-violet-400 border border-violet-500/20">DISCRETE LOG</span>
+        </div>
+
+        <div class="sub space-y-1">
+          <div class="lbl"><span>SECRET KEY x (PRIVATE)</span><span id="zk-x-val" class="text-emerald-400">23</span></div>
+          <input id="zk-x" type="range" min="2" max="60" step="1" value="23">
+        </div>
+
+        <div class="sub space-y-1">
+          <div class="lbl"><span>PRIME FIELD p</span><span class="text-zinc-350 font-mono">101 (g = 2)</span></div>
+          <div class="lbl"><span>PUBLIC KEY y = g^x mod p</span><span id="zk-y-val" class="text-cyan-400 font-bold">34</span></div>
+        </div>
+
+        <div class="sub space-y-1.5">
+          <div class="flex justify-between items-center text-[10px] font-mono text-zinc-400">
+            <span>SIMULATE CHEATING PROVER:</span>
+            <input type="checkbox" id="zk-cheat-toggle" class="cursor-pointer">
+          </div>
+          <p class="text-[9px] text-zinc-500 font-mono">When enabled, prover does NOT know secret $x$ and attempts to guess commitment. Observe verification rejection!</p>
+        </div>
+
+        <button id="btn-zk-step" class="w-full py-1.5 rounded-lg bg-obsidian-900 hover:bg-zinc-800 border border-white/[0.08] text-xs font-mono text-violet-300">
+          GENERATE NEW PROOF ROUND
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: ELLIPTIC CURVE ARITHMETIC (WEIERSTRASS OVER F_p) -->
+  <div id="section-ecc" class="tab-content hidden space-y-3">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <div class="lg:col-span-2 glass rounded-xl p-3 relative overflow-hidden flex flex-col">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <div class="flex items-center gap-2">
+            <i data-lucide="git-commit" class="w-4 h-4 text-cyan-400"></i>
+            <h2 class="text-xs font-bold text-white font-mono tracking-tight">
+              DISCRETE AFFINE PLANE $\mathbb{F}_p$ // $y^2 \equiv x^3 + ax + b \pmod p$
+            </h2>
+          </div>
+          <div class="text-[10px] font-mono text-zinc-400">
+            P = (<span id="ecc-p-coords" class="text-cyan-400">--</span>) &nbsp;|&nbsp; Q = (<span id="ecc-q-coords" class="text-emerald-400">--</span>) &nbsp;|&nbsp; R = P+Q (<span id="ecc-r-coords" class="text-amber-400">--</span>)
+          </div>
+        </div>
+        <div class="relative w-full h-80 sm:h-96 bg-obsidian-950 rounded-lg border border-white/[0.08] overflow-hidden shadow-inner flex-1">
+          <canvas id="ecc-canvas" class="w-full h-full block cursor-pointer"></canvas>
+        </div>
+      </div>
+
+      <!-- ECC Controls -->
+      <div class="glass rounded-xl p-3 space-y-3">
+        <div class="flex items-center justify-between border-b border-white/[0.08] pb-1">
+          <div class="flex items-center gap-1.5"><i data-lucide="sliders" class="w-3.5 h-3.5 text-cyan-400"></i><h3 class="text-xs font-bold font-mono text-white">CURVE EQUATION</h3></div>
+          <span class="text-[9px] font-mono px-1 py-0.2 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">WEIERSTRASS</span>
+        </div>
+        
+        <div class="sub space-y-1">
+          <div class="lbl"><span>COEFFICIENT a</span><span id="ecc-a-val" class="text-cyan-400">2</span></div>
+          <input id="ecc-a" type="range" min="0" max="10" step="1" value="2" class="c-c">
+        </div>
+
+        <div class="sub space-y-1">
+          <div class="lbl"><span>COEFFICIENT b</span><span id="ecc-b-val" class="text-cyan-400">3</span></div>
+          <input id="ecc-b" type="range" min="1" max="15" step="1" value="3" class="c-c">
+        </div>
+
+        <div class="sub space-y-1">
+          <div class="lbl"><span>FIELD MODULUS p</span><span id="ecc-p-val" class="text-cyan-400">67</span></div>
+          <input id="ecc-p" type="range" min="17" max="101" step="2" value="67" class="c-c">
+        </div>
+
+        <div class="sub space-y-1 text-[9px] font-mono text-zinc-400">
+          <div>TOTAL CURVE POINTS #E(F_p): <span id="ecc-total-pts" class="text-cyan-300 font-bold">72</span></div>
+          <div>DISCRIMINANT Δ = 4a³ + 27b²: <span id="ecc-disc" class="text-emerald-400 font-semibold">NON-ZERO</span></div>
+        </div>
+
+        <button id="btn-ecc-double" class="w-full py-1.5 rounded-lg bg-obsidian-900 hover:bg-zinc-800 border border-white/[0.08] text-xs font-mono text-cyan-300">
+          PERFORM POINT ADDITION (P + Q)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: SHA-256 BITWISE COMPRESSION & AVALANCHE LATTICE -->
+  <div id="section-sha" class="tab-content hidden space-y-3">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <div class="lg:col-span-2 glass rounded-xl p-3 relative overflow-hidden flex flex-col">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <div class="flex items-center gap-2">
+            <i data-lucide="binary" class="w-4 h-4 text-amber-400"></i>
+            <h2 class="text-xs font-bold text-white font-mono tracking-tight">
+              256-BIT STATE REGISTER MATRIX & AVALANCHE DIFFUSION HEATMAP
+            </h2>
+          </div>
+          <div class="text-[10px] font-mono text-zinc-400">
+            ROUND: <span id="sha-round-num" class="text-amber-400 font-bold">64 / 64</span>
+          </div>
+        </div>
+
+        <div class="relative w-full h-80 sm:h-96 bg-obsidian-950 rounded-lg border border-white/[0.08] overflow-hidden shadow-inner flex-1">
+          <canvas id="sha-canvas" class="w-full h-full block"></canvas>
+          <div class="absolute bottom-2 left-2 right-2 flex flex-wrap items-center justify-between pointer-events-none gap-2 px-3 py-1.5 rounded-lg bg-obsidian-950/85 backdrop-blur-md border border-white/[0.06] text-[10px] font-mono">
+            <div class="flex items-center gap-3 text-zinc-400">
+              <div>HASH: <span id="sha-digest" class="text-amber-400 font-mono text-[9px]">e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</span></div>
+            </div>
+            <div class="text-zinc-400">BIT FLIPS: <span id="sha-bitflips" class="text-rose-400 font-semibold">127 / 256 (49.6%)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SHA Controls -->
+      <div class="glass rounded-xl p-3 space-y-3">
+        <div class="flex items-center justify-between border-b border-white/[0.08] pb-1">
+          <div class="flex items-center gap-1.5"><i data-lucide="cpu" class="w-3.5 h-3.5 text-amber-400"></i><h3 class="text-xs font-bold font-mono text-white">AVALANCHE TESTER</h3></div>
+          <span class="text-[9px] font-mono px-1 py-0.2 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">MERKLE-DAMGÅRD</span>
+        </div>
+
+        <div class="sub space-y-1">
+          <span class="text-[10px] font-mono text-zinc-400">PRIMARY INPUT STRING</span>
+          <input id="sha-input-1" type="text" value="Google Spark Architecture" class="w-full bg-obsidian-900 border border-white/[0.08] rounded px-2 py-1 text-xs font-mono text-zinc-200 focus:outline-none">
+        </div>
+
+        <div class="sub space-y-1">
+          <span class="text-[10px] font-mono text-zinc-400">MUTATED INPUT (1-BIT FLIP)</span>
+          <input id="sha-input-2" type="text" value="Google Spark Architecturd" class="w-full bg-obsidian-900 border border-white/[0.08] rounded px-2 py-1 text-xs font-mono text-zinc-200 focus:outline-none">
+        </div>
+
+        <div class="sub space-y-1">
+          <div class="lbl"><span>STEP ROUND</span><span id="sha-step-val" class="text-amber-400">64</span></div>
+          <input id="sha-round-slider" type="range" min="1" max="64" step="1" value="64" class="c-a">
+        </div>
+
+        <div class="text-[9px] font-mono text-zinc-400 leading-tight">
+          Changing the final character from 'e' to 'd' flips exactly 1 bit. Observe how the 256-bit matrix undergoes complete pseudo-random avalanche dispersion!
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="flex flex-wrap items-center justify-between gap-2 py-1 text-[10px] font-mono text-zinc-500 border-t border-white/[0.06]">
+    <div class="flex items-center gap-2"><span>CRYPTA POST-QUANTUM LAB</span><span>•</span><span>LWE MATRIX & SIGMA PROOFS</span><span>•</span><span>AVALANCHE DIFFUSION</span></div>
+    <div class="flex items-center gap-2.5"><span>[1-4] Switch Modes</span><span>[R] Re-sample Noise</span></div>
+  </footer>
+</main>
+
+<script type="module">
+window.onerror=(m,s,l,c,e)=>console.error(`[CRYPTA ERROR]: ${m} at ${s}:${l}:${c}`,e);
+const $=(id)=>document.getElementById(id);
+const $$=(s)=>document.querySelectorAll(s);
+
+// Application State
+const state={
+  activeTab:'lattice',
+  // LWE Parameters
+  lwe:{q:97,n:2,sigma:2.5,mBit:1,s:[31,64],A:[[12,45],[78,29]],e:[2,-1],b:[0,0],r:[1,0],c1:[0,0],c2:0,decrypted:1,errDist:0},
+  // ZKP Parameters
+  zk:{p:101,g:2,x:23,y:34,r:17,t:42,c:13,s:81,cheating:false,verified:true},
+  // ECC Parameters
+  ecc:{a:2,b:3,p:67,points:[],P:null,Q:null,R:null},
+  // SHA Avalanche
+  sha:{input1:'Google Spark Architecture',input2:'Google Spark Architecturd',round:64,h1:[],h2:[],flips:127}
+};
+
+// ==========================================
+// 1. POST-QUANTUM LWE LATTICE ENGINE
+// ==========================================
+function recomputeLWE(){
+  const q=state.lwe.q;
+  const s=state.lwe.s;
+  const A=state.lwe.A;
+  
+  // Sample noise e ~ Gaussian(0, sigma)
+  const randNorm=()=>Math.round((Math.random()+Math.random()+Math.random()-1.5)*state.lwe.sigma*2);
+  state.lwe.e=[randNorm(),randNorm()];
+  
+  // b = A*s + e mod q
+  state.lwe.b=[
+    ((A[0][0]*s[0]+A[0][1]*s[1]+state.lwe.e[0])%q+q)%q,
+    ((A[1][0]*s[0]+A[1][1]*s[1]+state.lwe.e[1])%q+q)%q
+  ];
+
+  // Ciphertext (c1 = A^T * r, c2 = b^T * r + m * floor(q/2))
+  const r=state.lwe.r;
+  state.lwe.c1=[
+    ((A[0][0]*r[0]+A[1][0]*r[1])%q+q)%q,
+    ((A[0][1]*r[0]+A[1][1]*r[1])%q+q)%q
+  ];
+  const halfQ=Math.floor(q/2);
+  state.lwe.c2=((state.lwe.b[0]*r[0]+state.lwe.b[1]*r[1]+state.lwe.mBit*halfQ)%q+q)%q;
+
+  // Decryption: c2 - s^T * c1 mod q
+  const inner=(s[0]*state.lwe.c1[0]+s[1]*state.lwe.c1[1])%q;
+  const diff=((state.lwe.c2-inner)%q+q)%q;
+
+  // Nearest plane decoding
+  const dist0=Math.min(diff,q-diff);
+  const dist1=Math.abs(diff-halfQ);
+  state.lwe.decrypted=dist1<dist0?1:0;
+  state.lwe.errDist=Math.min(dist0,dist1);
+
+  // Update UI telemetry
+  $('tele-lwe-q').textContent=q;
+  $('tele-lwe-sigma').textContent=state.lwe.sigma;
+  const match=state.lwe.decrypted===state.lwe.mBit;
+  $('tele-lwe-decrypted').textContent=`${state.lwe.decrypted} (${match?'MATCH':'CORRUPTED'})`;
+  $('tele-lwe-decrypted').className=match?'text-emerald-400 font-semibold':'text-rose-400 font-semibold';
+  $('tele-lwe-err').textContent=state.lwe.errDist.toFixed(1);
+  $('tele-lwe-status').textContent=match?'NOISE < q/4':'NOISE OVERFLOW';
+  $('tele-lwe-status').className=match?'text-emerald-400 font-semibold':'text-rose-400 font-semibold';
+
+  renderLattice();
+}
+
+function renderLattice(){
+  const cv=$('lattice-canvas');if(!cv)return;
+  const ctx=cv.getContext('2d');
+  const W=cv.width/window.devicePixelRatio,H=cv.height/window.devicePixelRatio;
+  ctx.fillStyle='#050507';ctx.fillRect(0,0,W,H);
+
+  const q=state.lwe.q;
+  const cx=W/2,cy=H/2;
+  const gridScale=Math.min(W,H)/(q*1.2);
+
+  // Draw discrete torus / lattice grid
+  ctx.fillStyle='rgba(16,185,129,0.3)';
+  for(let x=0;x<q;x+=Math.max(1,Math.floor(q/30))){
+    for(let y=0;y<q;y+=Math.max(1,Math.floor(q/30))){
+      const sx=cx+(x-q/2)*gridScale;
+      const sy=cy-(y-q/2)*gridScale;
+      ctx.fillRect(sx,sy,1.5,1.5);
+    }
+  }
+
+  // Draw Basis Vectors
+  const A=state.lwe.A;
+  ctx.lineWidth=2;
+  ctx.strokeStyle='#06b6d4';
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+A[0][0]*gridScale*0.5,cy-A[0][1]*gridScale*0.5);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+A[1][0]*gridScale*0.5,cy-A[1][1]*gridScale*0.5);ctx.stroke();
+
+  // Draw Secret Key vector (s0, s1)
+  const sx=cx+(state.lwe.s[0]-q/2)*gridScale;
+  const sy=cy-(state.lwe.s[1]-q/2)*gridScale;
+  ctx.fillStyle='#06b6d4';ctx.beginPath();ctx.arc(sx,sy,5,0,Math.PI*2);ctx.fill();
+
+  // Draw Ciphertext target point (c1[0], c1[1])
+  const cxPt=cx+(state.lwe.c1[0]-q/2)*gridScale;
+  const cyPt=cy-(state.lwe.c1[1]-q/2)*gridScale;
+  ctx.fillStyle='#f59e0b';ctx.beginPath();ctx.arc(cxPt,cyPt,6,0,Math.PI*2);ctx.fill();
+
+  // Draw Noise ball around ciphertext
+  ctx.strokeStyle='rgba(245,158,11,0.4)';
+  ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(cxPt,cyPt,state.lwe.sigma*gridScale*2,0,Math.PI*2);ctx.stroke();
+}
+
+// ==========================================
+// 2. ZERO-KNOWLEDGE SCHNORR PROTOCOL
+// ==========================================
+function recomputeZKP(){
+  const {p,g,x,cheating}=state.zk;
+  // y = g^x mod p
+  const modPow=(b,e,m)=>{let res=1;b=b%m;while(e>0){if(e%2===1)res=(res*b)%m;e=Math.floor(e/2);b=(b*b)%m;}return res;};
+  
+  state.zk.y=modPow(g,x,p);
+  $('zk-y-val').textContent=state.zk.y;
+
+  // 1. Commitment t = g^r mod p
+  state.zk.r=Math.floor(Math.random()*(p-2))+1;
+  state.zk.t=modPow(g,state.zk.r,p);
+
+  // 2. Challenge c
+  state.zk.c=Math.floor(Math.random()*50)+1;
+
+  // 3. Response s = r + c*x mod (p-1)
+  if(!cheating){
+    state.zk.s=(state.zk.r+state.zk.c*x)%(p-1);
+    const left=modPow(g,state.zk.s,p);
+    const right=(state.zk.t*modPow(state.zk.y,state.zk.c,p))%p;
+    state.zk.verified=(left===right);
+    $('zk-eq-check').textContent=`Left: g^s = ${left} ≡ Right: t·y^c = ${right} (PROVED)`;
+    $('zk-eq-check').className='text-[10px] text-emerald-400 font-bold';
+  }else{
+    // Fake response
+    state.zk.s=Math.floor(Math.random()*(p-1));
+    const left=modPow(g,state.zk.s,p);
+    const right=(state.zk.t*modPow(state.zk.y,state.zk.c,p))%p;
+    state.zk.verified=(left===right);
+    $('zk-eq-check').textContent=`Left: g^s = ${left} ≠ Right: t·y^c = ${right} (REJECTED CHEATER)`;
+    $('zk-eq-check').className='text-[10px] text-rose-400 font-bold';
+  }
+
+  $('zk-r-val').textContent=state.zk.r;
+  $('zk-t-val').textContent=state.zk.t;
+  $('zk-c-val').textContent=state.zk.c;
+  $('zk-s-val').textContent=state.zk.s;
+  $('zk-verify-badge').textContent=state.zk.verified?'VERIFIED VALID':'FORGERY DETECTED';
+  $('zk-verify-badge').className=`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${state.zk.verified?'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30':'bg-rose-500/20 text-rose-300 border border-rose-500/30'}`;
+}
+
+// ==========================================
+// 3. ELLIPTIC CURVE ARITHMETIC (WEIERSTRASS)
+// ==========================================
+function recomputeECC(){
+  const {a,b,p}=state.ecc;
+  const modPow=(base,exp,mod)=>{let r=1;base=base%mod;while(exp>0){if(exp%2===1)r=(r*base)%mod;exp=Math.floor(exp/2);base=(base*base)%mod;}return r;};
+  
+  // Find all points (x, y) on y^2 = x^3 + ax + b mod p
+  const pts=[];
+  for(let x=0;x<p;x++){
+    const rhs=((x*x*x+a*x+b)%p+p)%p;
+    for(let y=0;y<p;y++){
+      if((y*y)%p===rhs){
+        pts.push([x,y]);
+      }
+    }
+  }
+  state.ecc.points=pts;
+  $('ecc-total-pts').textContent=pts.length+1; // + point at infinity
+  
+  const disc=((4*a*a*a+27*b*b)%p+p)%p;
+  $('ecc-disc').textContent=disc===0?'SINGULAR (BAD)':'NON-ZERO (SMOOTH)';
+  $('ecc-disc').className=disc===0?'text-rose-400 font-semibold':'text-emerald-400 font-semibold';
+
+  if(pts.length>1){
+    state.ecc.P=pts[Math.floor(pts.length*0.2)];
+    state.ecc.Q=pts[Math.floor(pts.length*0.7)];
+    // Point Addition: P + Q
+    state.ecc.R=addPoints(state.ecc.P,state.ecc.Q,a,p);
+    $('ecc-p-coords').textContent=`${state.ecc.P[0]}, ${state.ecc.P[1]}`;
+    $('ecc-q-coords').textContent=`${state.ecc.Q[0]}, ${state.ecc.Q[1]}`;
+    $('ecc-r-coords').textContent=state.ecc.R?`${state.ecc.R[0]}, ${state.ecc.R[1]}`:'O (INFINITY)';
+  }
+
+  renderECC();
+}
+
+function addPoints(P,Q,a,p){
+  if(!P)return Q;if(!Q)return P;
+  const [x1,y1]=P,[x2,y2]=Q;
+  const modInv=(n,m)=>{for(let x=1;x<m;x++)if((n%m*x)%m===1)return x;return 1;};
+  let lambda;
+  if(x1===x2&&y1===y2){
+    if(y1===0)return null;
+    lambda=((3*x1*x1+a)*modInv(2*y1,p))%p;
+  }else{
+    if(x1===x2)return null;
+    const num=((y2-y1)%p+p)%p;
+    const den=((x2-x1)%p+p)%p;
+    lambda=(num*modInv(den,p))%p;
+  }
+  lambda=(lambda%p+p)%p;
+  const x3=((lambda*lambda-x1-x2)%p+p)%p;
+  const y3=((lambda*(x1-x3)-y1)%p+p)%p;
+  return [x3,y3];
+}
+
+function renderECC(){
+  const cv=$('ecc-canvas');if(!cv)return;
+  const ctx=cv.getContext('2d');
+  const W=cv.width/window.devicePixelRatio,H=cv.height/window.devicePixelRatio;
+  ctx.fillStyle='#050507';ctx.fillRect(0,0,W,H);
+
+  const p=state.ecc.p;
+  const pad=30;
+  const sx=(x)=>pad+(x/p)*(W-pad*2);
+  const sy=(y)=>H-(pad+(y/p)*(H-pad*2));
+
+  // Points on curve
+  ctx.fillStyle='rgba(6,182,212,0.6)';
+  for(const [x,y] of state.ecc.points){
+    ctx.beginPath();ctx.arc(sx(x),sy(y),2.5,0,Math.PI*2);ctx.fill();
+  }
+
+  // Draw P, Q, R
+  if(state.ecc.P){
+    ctx.fillStyle='#06b6d4';ctx.beginPath();ctx.arc(sx(state.ecc.P[0]),sy(state.ecc.P[1]),6,0,Math.PI*2);ctx.fill();
+  }
+  if(state.ecc.Q){
+    ctx.fillStyle='#10b981';ctx.beginPath();ctx.arc(sx(state.ecc.Q[0]),sy(state.ecc.Q[1]),6,0,Math.PI*2);ctx.fill();
+  }
+  if(state.ecc.R){
+    ctx.fillStyle='#f59e0b';ctx.beginPath();ctx.arc(sx(state.ecc.R[0]),sy(state.ecc.R[1]),6,0,Math.PI*2);ctx.fill();
+  }
+}
+
+// ==========================================
+// 4. SHA-256 STATE & AVALANCHE ENGINE
+// ==========================================
+async function recomputeSHA(){
+  const str1=state.sha.input1,str2=state.sha.input2;
+  const getHashBits=async(s)=>{
+    const enc=new TextEncoder().encode(s);
+    const hashBuf=await crypto.subtle.digest('SHA-256',enc);
+    const arr=new Uint8Array(hashBuf);
+    let bits=[];
+    for(let b of arr){
+      for(let i=7;i>=0;i--)bits.push((b>>i)&1);
+    }
+    const hex=Array.from(arr).map(b=>b.toString(16).padStart(2,'0')).join('');
+    return {bits,hex};
+  };
+
+  const h1=await getHashBits(str1);
+  const h2=await getHashBits(str2);
+  state.sha.h1=h1.bits;state.sha.h2=h2.bits;
+  
+  let flips=0;
+  for(let i=0;i<256;i++){
+    if(h1.bits[i]!==h2.bits[i])flips++;
+  }
+  state.sha.flips=flips;
+
+  $('sha-digest').textContent=h1.hex;
+  $('sha-bitflips').textContent=`${flips} / 256 (${((flips/256)*100).toFixed(1)}%)`;
+
+  renderSHA();
+}
+
+function renderSHA(){
+  const cv=$('sha-canvas');if(!cv)return;
+  const ctx=cv.getContext('2d');
+  const W=cv.width/window.devicePixelRatio,H=cv.height/window.devicePixelRatio;
+  ctx.fillStyle='#050507';ctx.fillRect(0,0,W,H);
+
+  // Render 16x16 bit matrix comparison
+  const cols=16,rows=16;
+  const cellW=(W-40)/cols,cellH=(H-40)/rows;
+
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const bitIdx=r*cols+c;
+      const b1=state.sha.h1[bitIdx]||0;
+      const b2=state.sha.h2[bitIdx]||0;
+      const x=20+c*cellW,y=20+r*cellH;
+
+      if(b1!==b2){
+        ctx.fillStyle='#f43f5e'; // Flips in Red
+      }else if(b1===1){
+        ctx.fillStyle='#10b981'; // Unchanged 1
+      }else{
+        ctx.fillStyle='#181820'; // Unchanged 0
+      }
+      ctx.fillRect(x+1,y+1,cellW-2,cellH-2);
+    }
+  }
+}
+
+// ==========================================
+// 5. EVENT LISTENERS & RESIZE OBSERVER
+// ==========================================
+function setupEventListeners(){
+  // Mode Tabs
+  $$('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      $$('.tab-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const tab=btn.dataset.tab;
+      $$('.tab-content').forEach(el=>el.classList.add('hidden'));
+      $(`section-${tab}`).classList.remove('hidden');
+      state.activeTab=tab;
+      if(tab==='lattice')renderLattice();
+      else if(tab==='ecc')renderECC();
+      else if(tab==='sha')renderSHA();
+    });
+  });
+
+  // Presets
+  $('preset-selector').addEventListener('change',(e)=>{
+    const val=e.target.value;
+    if(val==='lwe_standard'){
+      $('btn-bit-1').click();
+      $('lwe-q').value=97;state.lwe.q=97;$('lwe-q-val').textContent=97;
+      $('lwe-sigma').value=2.5;state.lwe.sigma=2.5;$('lwe-sigma-val').textContent=2.5;
+      document.querySelector('[data-tab="lattice"]').click();
+      recomputeLWE();
+    }else if(val==='lwe_noisy'){
+      $('lwe-sigma').value=12;state.lwe.sigma=12;$('lwe-sigma-val').textContent=12;
+      document.querySelector('[data-tab="lattice"]').click();
+      recomputeLWE();
+    }else if(val==='zk_schnorr'){
+      document.querySelector('[data-tab="zkp"]').click();
+      recomputeZKP();
+    }else if(val==='ecc_dh'){
+      document.querySelector('[data-tab="ecc"]').click();
+      recomputeECC();
+    }else if(val==='sha_diffusion'){
+      document.querySelector('[data-tab="sha"]').click();
+      recomputeSHA();
+    }
+    if(typeof confetti==='function')confetti({particleCount:30,spread:45,origin:{y:0.2}});
+  });
+
+  // Recompute button
+  $('btn-recompute').addEventListener('click',()=>{
+    if(state.activeTab==='lattice')recomputeLWE();
+    else if(state.activeTab==='zkp')recomputeZKP();
+    else if(state.activeTab==='ecc')recomputeECC();
+    else if(state.activeTab==='sha')recomputeSHA();
+  });
+
+  // LWE Controls
+  $('lwe-q').addEventListener('input',(e)=>{state.lwe.q=parseInt(e.target.value);$('lwe-q-val').textContent=state.lwe.q;recomputeLWE();});
+  $('lwe-sigma').addEventListener('input',(e)=>{state.lwe.sigma=parseFloat(e.target.value);$('lwe-sigma-val').textContent=state.lwe.sigma;recomputeLWE();});
+  $('btn-bit-0').addEventListener('click',()=>{
+    state.lwe.mBit=0;$('lwe-bit-val').textContent=0;
+    $('btn-bit-0').className='flex-1 py-1 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold';
+    $('btn-bit-1').className='flex-1 py-1 rounded bg-obsidian-900 border border-white/[0.08] text-xs font-mono hover:text-white';
+    recomputeLWE();
+  });
+  $('btn-bit-1').addEventListener('click',()=>{
+    state.lwe.mBit=1;$('lwe-bit-val').textContent=1;
+    $('btn-bit-1').className='flex-1 py-1 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold';
+    $('btn-bit-0').className='flex-1 py-1 rounded bg-obsidian-900 border border-white/[0.08] text-xs font-mono hover:text-white';
+    recomputeLWE();
+  });
+  $('btn-sample-noise').addEventListener('click',recomputeLWE);
+
+  // ZK Controls
+  $('zk-x').addEventListener('input',(e)=>{state.zk.x=parseInt(e.target.value);$('zk-x-val').textContent=state.zk.x;recomputeZKP();});
+  $('zk-cheat-toggle').addEventListener('change',(e)=>{state.zk.cheating=e.target.checked;recomputeZKP();});
+  $('btn-zk-step').addEventListener('click',recomputeZKP);
+
+  // ECC Controls
+  $('ecc-a').addEventListener('input',(e)=>{state.ecc.a=parseInt(e.target.value);$('ecc-a-val').textContent=state.ecc.a;recomputeECC();});
+  $('ecc-b').addEventListener('input',(e)=>{state.ecc.b=parseInt(e.target.value);$('ecc-b-val').textContent=state.ecc.b;recomputeECC();});
+  $('ecc-p').addEventListener('input',(e)=>{state.ecc.p=parseInt(e.target.value);$('ecc-p-val').textContent=state.ecc.p;recomputeECC();});
+  $('btn-ecc-double').addEventListener('click',recomputeECC);
+
+  // SHA Controls
+  $('sha-input-1').addEventListener('input',(e)=>{state.sha.input1=e.target.value;recomputeSHA();});
+  $('sha-input-2').addEventListener('input',(e)=>{state.sha.input2=e.target.value;recomputeSHA();});
+  $('sha-round-slider').addEventListener('input',(e)=>{
+    state.sha.round=parseInt(e.target.value);$('sha-step-val').textContent=state.sha.round;$('sha-round-num').textContent=`${state.sha.round} / 64`;
+    renderSHA();
+  });
+
+  // Canvas Resizing
+  const handleResize=()=>{
+    const dpr=window.devicePixelRatio||1;
+    ['lattice-canvas','ecc-canvas','sha-canvas'].forEach(id=>{
+      const cv=$(id);if(!cv)return;
+      const rect=cv.getBoundingClientRect();
+      cv.width=rect.width*dpr;cv.height=rect.height*dpr;
+      const ctx=cv.getContext('2d');
+      ctx.scale(dpr,dpr);
+    });
+    if(state.activeTab==='lattice')renderLattice();
+    else if(state.activeTab==='ecc')renderECC();
+    else if(state.activeTab==='sha')renderSHA();
+  };
+  new ResizeObserver(handleResize).observe($('lattice-canvas'));
+
+  // Keyboard Navigation
+  window.addEventListener('keydown',(e)=>{
+    if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;
+    if(e.key==='1')document.querySelector('[data-tab="lattice"]').click();
+    if(e.key==='2')document.querySelector('[data-tab="zkp"]').click();
+    if(e.key==='3')document.querySelector('[data-tab="ecc"]').click();
+    if(e.key==='4')document.querySelector('[data-tab="sha"]').click();
+    if(e.key.toLowerCase()==='r')$('btn-recompute').click();
+  });
+}
+
+window.addEventListener('DOMContentLoaded',()=>{
+  if(window.lucide)window.lucide.createIcons();
+  setupEventListeners();
+  recomputeLWE();
+  recomputeZKP();
+  recomputeECC();
+  recomputeSHA();
+});
+</script>
+</body>
+</html>
